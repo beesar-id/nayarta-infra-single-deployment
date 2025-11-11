@@ -25,6 +25,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BROWSER: "on"
       MINIO_PROMETHEUS_AUTH_TYPE: "public"
+      MINIO_SERVER_URL: "http://localhost:9100"
     volumes:
       - ./data:/data:rw
     command: server /data --console-address ":9001"

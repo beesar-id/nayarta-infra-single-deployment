@@ -118,15 +118,15 @@ hlsVariant: fmp4
 # hlsMuxerCloseAfter: 180s
 
 # Path configurations
-# paths:
-#   stream:
-#     source: rtsp://nayarta-camera:8554/test
-#     sourceOnDemand: no
-#     runOnReadyRestart: yes
-#     runOnReady: >
-#       ffmpeg -rtsp_transport tcp -i rtsp://mediamtx-cam:8554/test
-#       -c:v libx264 -preset ultrafast -tune zerolatency
-#       -pix_fmt yuv420p -bf 0 -g 30 -keyint_min 30 -sc_threshold 0
-#       -b:v 1500k -maxrate 1500k -bufsize 3000k
-#       -c:a libopus -ar 48000 -ac 2
-#       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/test
+paths:
+  stream:
+    source: rtsp://nayarta-camera:8554/test
+    sourceOnDemand: no
+    runOnReadyRestart: yes
+    runOnReady: >
+      ffmpeg -rtsp_transport tcp -i rtsp://localhost:8554/stream
+      -c:v libx264 -preset ultrafast -tune zerolatency
+      -pix_fmt yuv420p -bf 0 -g 30 -keyint_min 30 -sc_threshold 0
+      -b:v 1500k -maxrate 1500k -bufsize 3000k
+      -c:a libopus -ar 48000 -ac 2
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/test

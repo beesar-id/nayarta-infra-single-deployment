@@ -48,24 +48,24 @@ services:
     networks:
       - nayarta-network
   
-  # mediamtx-cam:
-  #   profiles: ["stream", "stream-camera", "all", "appstack"]
-  #   image: bluenviron/mediamtx:latest-ffmpeg
-  #   container_name: nayarta-camera
-  #   # ports:
-  #   #   - "8556:8554"   # RTSP
-  #   restart: unless-stopped
-  #   networks:
-  #     - nayarta-network
+  mediamtx-cam:
+    profiles: ["stream", "stream-camera", "all", "appstack"]
+    image: bluenviron/mediamtx:latest-ffmpeg
+    container_name: nayarta-camera
+    # ports:
+    #   - "8556:8554"   # RTSP
+    restart: unless-stopped
+    networks:
+      - nayarta-network
 
-  # stream-test:
-  #   image: linuxserver/ffmpeg
-  #   container_name: stream-test
-  #   command: -re -stream_loop -1 -fflags +genpts -i /videos/sample.mp4 -vf scale=640:480 -c:v libx264 -preset ultrafast -tune zerolatency -b:v 1000k -maxrate 1000k -bufsize 2000k -c:a aac -ar 44100 -use_wallclock_as_timestamps 1 -rtsp_transport tcp -f rtsp rtsp://mediamtx-cam:8554/test
-  #   volumes:
-  #     - ./video:/videos
-  #   networks:
-  #     - nayarta-network
+  stream-test:
+    image: linuxserver/ffmpeg
+    container_name: stream-test
+    command: -re -stream_loop -1 -fflags +genpts -i /videos/sample.mp4 -vf scale=640:480 -c:v libx264 -preset ultrafast -tune zerolatency -b:v 1000k -maxrate 1000k -bufsize 2000k -c:a aac -ar 44100 -use_wallclock_as_timestamps 1 -rtsp_transport tcp -f rtsp rtsp://mediamtx-cam:8554/test
+    volumes:
+      - ./video:/videos
+    networks:
+      - nayarta-network
 
   emqx:
     profiles: ["stream", "mqtt", "all", "appstack"]

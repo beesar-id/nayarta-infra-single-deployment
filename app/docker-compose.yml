@@ -15,7 +15,7 @@ networks:
 services:
   api:
     profiles: ["app", "appstack", "all"]
-    image: beesar/beesar-vms-dev:latest
+    image: beesar/beesar-vms-be:latest
     container_name: nayarta-vms-api
     restart: unless-stopped
     ports:
@@ -54,12 +54,20 @@ services:
       - OBJECT_STORAGE_USE_PATH_STYLE=${OBJECT_STORAGE_USE_PATH_STYLE:-true}
       - OBJECT_STORAGE_PROVIDER=${OBJECT_STORAGE_PROVIDER:-minio}
       
-      # MQTT Connection (from stream service)
+      # MQTT Connection 
       - MQTT_HOST=${MQTT_HOST:-nayarta-mqtt}
       - MQTT_USERNAME=${MQTT_USER:-mqttuser}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
       - MQTT_PORT=${MQTT_PORT:-1883}
       - MQTT_TLS=${MQTT_TLS:-false}
+
+      # RabbitMQ Connection 
+      - RABBITMQ_HOST=${RABBITMQ_HOST:-nayarta-rabbitmq}
+      - RABBITMQ_USERNAME=${RABBITMQ_USER:-mqttuser}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_PORT=${RABBITMQ_PORT:-5672}
+      - RABBITMQ_TLS=${RABBITMQ_TLS:-false}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST:-/}
       
       # External APIs (keep as is)
       - FACE_SEARCH_BASE_URL=${FACE_SEARCH_BASE_URL:-https://faceapi.nayarta.id}
