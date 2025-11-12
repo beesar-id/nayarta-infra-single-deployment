@@ -13,7 +13,7 @@ networks:
 
 services:
   rabbitmq:
-    profiles: ["rabbitmq", "all", "analytics"]
+    profiles: ["rabbitmq", "all", "analytics", "analytics-tools"]
     image: rabbitmq:3-management-alpine
     container_name: nayarta-rabbitmq
     restart: unless-stopped

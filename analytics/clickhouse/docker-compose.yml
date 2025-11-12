@@ -16,7 +16,7 @@ volumes:
 
 services:
   ch-server:
-    profiles: ["clickhouse", "all", "analytics"]
+    profiles: ["clickhouse", "all", "analytics", "analytics-tools"]
     image: clickhouse/clickhouse-server:latest
     container_name: nayarta-ch-server
     restart: unless-stopped
