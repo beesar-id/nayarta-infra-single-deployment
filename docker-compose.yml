@@ -60,15 +60,16 @@ services:
       # Clean up old images after updating
       - WATCHTOWER_CLEANUP=true
       # Include stopped containers
-      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_INCLUDE_STOPPED=true
       # Include restartable containers
       - WATCHTOWER_INCLUDE_RESTARTING=true
       # Send notifications (optional - uncomment and configure if needed)
+      - WATCHTOWER_LABEL_ENABLE=true
       # - WATCHTOWER_NOTIFICATIONS=slack
       # - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=your-webhook-url
     # Only watch containers with the label com.centurylinklabs.watchtower.enable=true
     # This ensures only specific services (api, admin, frontend) are monitored
     # Interval: 3600 seconds = 1 hour
-    command: --interval 3600 --cleanup --include-restarting --label-enable
+    # command: --interval 3600 --cleanup --include-restarting --label-enable
     # Note: Watchtower doesn't need to be on the application network
     # It monitors containers via the Docker socket
