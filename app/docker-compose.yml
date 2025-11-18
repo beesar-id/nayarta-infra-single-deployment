@@ -43,7 +43,7 @@ services:
       - CLICKHOUSE_HOST=${CLICKHOUSE_HOST:-nayarta-ch-server}
       - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-      - CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-8123}
+      - CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-9000}
       - CLICKHOUSE_SECURE=${CLICKHOUSE_SECURE:-false}
       
       # Object Storage (from storage service)
