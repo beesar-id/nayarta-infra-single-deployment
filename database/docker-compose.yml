@@ -39,45 +39,45 @@ services:
       retries: 3
       start_period: 40s
 
-  # postgres-backup:
-  #   profiles: ["dbbackup", "postgresbackup"]
-  #   image: postgres:16-alpine
-  #   container_name: nayarta-postgres-backup
-  #   environment:
-  #     DB_USER: ${DB_USER:-admin}
-  #     DB_HOST: nayarta-postgres
-  #     DB_PORT: ${DB_PORT:-5432}
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
-  #     DB_BACKUP_NAME: ${DB_BACKUP_NAME:-vms_development,analytics_db,schedulerdb}
-  #   volumes:
-  #     - ./backup/dumps:/dumps
-  #     - ./scripts/backup.sh:/backup.sh:ro
-  #   networks:
-  #     - nayarta-network
-  #   # depends_on:
-  #   #   - postgres
-  #   command: ["bash", "/backup.sh"]
-  #   restart: "no"
+  postgres-backup:
+    profiles: ["dbbackup", "postgresbackup"]
+    image: postgres:16-alpine
+    container_name: nayarta-postgres-backup
+    environment:
+      DB_USER: ${DB_USER:-admin}
+      DB_HOST: nayarta-postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      DB_BACKUP_NAME: ${DB_BACKUP_NAME:-vms_development,analytics_db,schedulerdb}
+    volumes:
+      - ./backup/dumps:/dumps
+      - ./scripts/backup.sh:/backup.sh:ro
+    networks:
+      - nayarta-network
+    # depends_on:
+    #   - postgres
+    command: ["bash", "/backup.sh"]
+    restart: "no"
 
-  # postgres-restore:
-  #   profiles: ["dbrestore", "postgresrestore"]
-  #   image: postgres:16-alpine
-  #   container_name: nayarta-postgres-restore
-  #   environment:
-  #     DB_USER: ${DB_USER:-admin}
-  #     DB_HOST: nayarta-postgres
-  #     DB_PORT: ${DB_PORT:-5432}
-  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
-  #     DB_BACKUP_NAME: ${DB_BACKUP_NAME:-vms_development,analytics_db,schedulerdb}
-  #   volumes:
-  #     - ./backup/dumps:/dumps
-  #     - ./scripts/restore.sh:/restore.sh:ro
-  #   networks:
-  #     - nayarta-network
-  #   # depends_on:
-  #   #   - postgres
-  #   command: ["bash", "/restore.sh"]
-  #   restart: "no"
+  postgres-restore:
+    profiles: ["dbrestore", "postgresrestore"]
+    image: postgres:16-alpine
+    container_name: nayarta-postgres-restore
+    environment:
+      DB_USER: ${DB_USER:-admin}
+      DB_HOST: nayarta-postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      DB_BACKUP_NAME: ${DB_BACKUP_NAME:-vms_development,analytics_db,schedulerdb}
+    volumes:
+      - ./backup:/dumps:ro
+      - ./scripts/restore.sh:/restore.sh:ro
+    networks:
+      - nayarta-network
+    # depends_on:
+    #   - postgres
+    command: ["bash", "/restore.sh"]
+    restart: "no"
 
 # volumes:
 #   postgres_data:
