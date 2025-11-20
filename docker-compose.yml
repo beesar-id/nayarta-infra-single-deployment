@@ -42,10 +42,6 @@ include:
   - path: analytics/rabbitmq/docker-compose.yml
   - path: analytics/clickhouse/docker-compose.yml
 
-  - path: analytics/pipeline/firesmoke/docker-compose.yml
-  - path: analytics/pipeline/task/docker-compose.yml
-  - path: analytics/scheduler/docker-compose.yml
-
 # Watchtower service for automatic container updates
 services:
   watchtower:
