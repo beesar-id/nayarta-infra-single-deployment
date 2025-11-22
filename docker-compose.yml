@@ -42,6 +42,9 @@ include:
   - path: analytics/rabbitmq/docker-compose.yml
   - path: analytics/clickhouse/docker-compose.yml
 
+  # Monitoring services
+  - path: monitoring/docker-compose.yml
+
 # Watchtower service for automatic container updates
 services:
   watchtower:
