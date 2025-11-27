@@ -106,7 +106,7 @@ services:
 
   sse:
     profiles: ["app", "appstack", "all"]
-    image: beesar/beesar-vms-be:latest
+    image: beesar/beesar-vms-be:sse-latest
     container_name: nayarta-vms-sse
     restart: unless-stopped
     labels:
