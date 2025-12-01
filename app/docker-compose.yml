@@ -101,6 +101,9 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-debug}
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - LOG_OUTPUT=${LOG_OUTPUT:-stdout}
+
+      # Mediamtx
+      - MEDIAMTX_BASE_URL=${MEDIA_BASE_URL:-http://nayarta-stream:9997}
     networks:
       - nayarta-network
 
