@@ -31,5 +31,3 @@ RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121 \
     -r requirements.txt \
     && rm -rf /root/.cache
-
-COPY pipman .
