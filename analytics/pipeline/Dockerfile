@@ -10,13 +10,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
-    python3-dev \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender1 \
     libgomp1 \
-    libgl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip dan set python alias
@@ -31,4 +29,7 @@ COPY requirements.txt .
 # Install Python deps dengan PyTorch CUDA
 RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121 \
-    -r requirements.txt
+    -r requirements.txt \
+    && rm -rf /root/.cache
+
+COPY pipman .
