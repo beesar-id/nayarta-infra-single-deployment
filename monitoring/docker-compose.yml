@@ -46,6 +46,21 @@ services:
     depends_on:
       - prometheus
 
+  # dcgm-exporter:
+  #   image: nvcr.io/nvidia/k8s/dcgm-exporter:3.2.0-3.4.0-ubuntu20.04
+  #   container_name: dcgm-exporter
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - capabilities: [gpu]
+  #   ports:
+  #     - "9400:9400"
+  #   runtime: nvidia
+  #   networks:
+  #     - nayarta-network
+
 volumes:
   prometheus_data:
   grafana_data:
