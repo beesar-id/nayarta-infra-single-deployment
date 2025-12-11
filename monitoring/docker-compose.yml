@@ -1,6 +1,6 @@
 services:
   cadvisor:
-    profiles: ["monitoring"]
+    profiles: ["monitoring", "cadvisor"]
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
     ports:
@@ -46,20 +46,22 @@ services:
     depends_on:
       - prometheus
 
-  # dcgm-exporter:
-  #   image: nvcr.io/nvidia/k8s/dcgm-exporter:3.2.0-3.4.0-ubuntu20.04
-  #   container_name: dcgm-exporter
-  #   restart: unless-stopped
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - capabilities: [gpu]
-  #   ports:
-  #     - "9400:9400"
-  #   runtime: nvidia
-  #   networks:
-  #     - nayarta-network
+  dcgm-exporter:
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:latest
+    profiles: ["monitoring"]
+    container_name: dcgm-exporter
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    network_mode: host
 
 volumes:
   prometheus_data:
