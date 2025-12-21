@@ -18,8 +18,6 @@ services:
         "
     networks:
       - nayarta-network
-#    volumes:
-#      - ./pipman/pipmanweb:/app:delegated
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
@@ -34,36 +32,53 @@ services:
     container_name: nayarta-analytics-pipman
     restart: unless-stopped
     environment:
-      # Database Configuration (PostgreSQL - External)
-      - DB_NAME=${DB_NAME_ANALYTICS:-schedulerdb}
-      - DB_USER=${DB_USER_ANALYTICS:-admin}
-      - DB_PASS=${DB_PASSWORD_ANALYTICS:-change_me}
-      - DB_HOST=${DB_ANALYTICS_HOST:-nayarta-postgres}
-      - DB_PORT=${DB_PORT_ANALYTICS:-5432}
-      
-      # Nayarta API Configuration
-      - NAYARTA_URL=${API_BASE_URL_ANALYTICS}
-      - NAYARTA_API_KEY=${API_KEY_PIPELINE}
-      - NAYARTA_STREAM_URL=${NAYARTA_STREAM_URL:-rtsp://localhost:8554}      
+      # Debug Mode
+      - DEBUG=${DEBUG:-True}
 
-      # Nayai Configuration
+      # ========= NAYARTA =========
+      - NAYARTA_URL=${API_BASE_URL_ANALYTICS:-http://localhost:8457}
+      - NAYARTA_STREAM_URL=${NAYARTA_STREAM_URL:-rtsp://localhost:8554/}
+      - NAYARTA_API_KEY=${API_KEY_PIPELINE:-VRX986-90-BA-77654NY}
       - PIPMAN_URL=${PIPMAN_URL:-http://${HOST_IP:-localhost}:8000}
-      
-      # RabbitMQ Configuration (External)
+
+      # ========= CLICKHOUSE =========
+      - ch_host = ${CLICKHOUSE_HOST:-localhost}
+      - ch_uname = ${CLICKHOUSE_USER:-default}
+      - ch_password = ${CLICKHOUSE_PASSWORD:-beEs4rP@ssW0rD!}
+      - ch_port = ${CLICKHOUSE_PORT:-8124}
+      - ch_dbname = ${CLICKHOUSE_DB:-default}
+      - ch_secure = ${CLICKHOUSE_SECURE:-False}
+
+      # ========= RABBITMQ =========
+      - RMQ_USER=${RABBITMQ_USER:-queueuser}
+      - RMQ_PASS=${RABBITMQ_PASSWORD:-queuePassword}
       - RMQ_HOST=${HOST_IP:-localhost}
       - RMQ_PORT=${RABBITMQ_PORT:-5672}
-      - RMQ_USER=${RABBITMQ_USER}
-      - RMQ_PASS=${RABBITMQ_PASSWORD}
-      
-      # Debug Mode
-      - DEBUG=${DEBUG:-False}
-#    volumes:
-#      - ./pipman:/app:delegated
+
+      # ========= MQTT =========
+      - MQTT_BROKER = ${MQTT_BROKER:-localhost}
+      - MQTT_PORT = ${MQTT_PORT:-1883}
+      - MQTT_TOPIC = ${MQTT_TOPIC:-nayai/analytic_update}
+      - MQTT_UNAME = ${MQTT_USER:-mqttuser}
+      - MQTT_PASS = ${MQTT_PASSWORD:-mqttpassword}
+
+      # ========= POSTGRES =========
+      - PG_HOST = ${DB_HOST_ANALYTICS:-localhost}
+      - PG_PORT = ${DB_PORT_ANALYTICS:-5432}
+      - PG_DB = ${DB_NAME_ANALYTICS:-analytics_db}
+      - PG_USER = ${DB_USER_ANALYTICS:-admin}
+      - PG_PASS = ${DB_PASSWORD_ANALYTICS:-admin122}
+
+      # ========= DIRECTORIES =========
+      - RUNTIME_FOLDER = ${RUNTIME_FOLDER:-/home/beesar/nayarta-single-deployment/analytics/pipeline}
+      - LOG_FOLDER = ${LOG_FOLDER:-./logs}
     command: python pipman.py
     networks:
       - nayarta-network
     depends_on:
       - pipman-ui
+    volumes:
+      - ./pipman/modules/evidence:/evidence
     #healthcheck:
     #  test: ["CMD-SHELL", "ps aux | grep '[s]cheduler_pika.py' || exit 1"]
     #  interval: 30s
@@ -77,55 +92,53 @@ services:
     container_name: nayarta-analytics-task-service
     restart: unless-stopped
     environment:
-      # ========= API ENDPOINTS =========
-      - BASE_URL=${API_BASE_URL_ANALYTICS}/api/v1
-      - get_video_detail_api_link=${API_BASE_URL_ANALYTICS}/api/v1/files/key/
-      - get_video_api_link=${API_BASE_URL_ANALYTICS}/api/v1/files/key/access-download-url
-      - upload_api_link=${API_BASE_URL_ANALYTICS}/api/v1/files/key/
-      - register_file_api_link=${API_BASE_URL_ANALYTICS}/api/v1/files/key
-      - URL_ANALYTIC_PROCESS=${API_BASE_URL_ANALYTICS}/api/v1/files/key/analytic-processes/
-      - URL_ANALYTIC_POST=${API_BASE_URL_ANALYTICS}/api/v1/analytics/key
-      - URL_ALERT=${API_BASE_URL_ANALYTICS}/api/v1/alerts/key
-      - URL_ANALYTIC_CONFIG=${API_BASE_URL_ANALYTICS}/api/v1/cctv-analytics/key/config/
+      # Debug Mode
+      - DEBUG=${DEBUG:-False}
+
+      # ========= NAYARTA =========
+      - NAYARTA_URL=${API_BASE_URL_ANALYTICS:-http://localhost:8457}
+      - NAYARTA_STREAM_URL=${NAYARTA_STREAM_URL:-rtsp://localhost:8554/}
+      - NAYARTA_API_KEY=${API_KEY_PIPELINE:-VRX986-90-BA-77654NY}
+      - PIPMAN_URL=${PIPMAN_URL:-http://${HOST_IP:-localhost}:8000}
 
       # ========= CLICKHOUSE =========
-      - ch_host=${CLICKHOUSE_HOST}
-      - ch_uname=${CLICKHOUSE_USER}
-      - ch_password=${CLICKHOUSE_PASSWORD}
-      - ch_dbname=${CLICKHOUSE_DATABASE}
+      - ch_host = ${CLICKHOUSE_HOST:-localhost}
+      - ch_uname = ${CLICKHOUSE_USER:-default}
+      - ch_password = ${CLICKHOUSE_PASSWORD:-beEs4rP@ssW0rD!}
+      - ch_port = ${CLICKHOUSE_PORT:-8124}
+      - ch_dbname = ${CLICKHOUSE_DB:-default}
+      - ch_secure = ${CLICKHOUSE_SECURE:-False}
 
       # ========= RABBITMQ =========
-      - RABBITMQ_HOST=${HOST_IP}
-      - RABBITMQ_PORT=5672
-      - RABBITMQ_USERNAME=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RMQ_USER=${RABBITMQ_USER:-queueuser}
+      - RMQ_PASS=${RABBITMQ_PASSWORD:-queuePassword}
+      - RMQ_HOST=${HOST_IP:-localhost}
+      - RMQ_PORT=${RABBITMQ_PORT:-5672}
 
       # ========= MQTT =========
-      - MQTT_BROKER=${HOST_IP}
-      - MQTT_PORT=${MQTT_PORT}
-      - MQTT_TOPIC=${MQTT_TOPIC:-nayai/analytic_update}
-      - MQTT_UNAME=${MQTT_USER}
-      - MQTT_PASS=${MQTT_PASSWORD}
+      - MQTT_BROKER = ${MQTT_BROKER:-localhost}
+      - MQTT_PORT = ${MQTT_PORT:-1883}
+      - MQTT_TOPIC = ${MQTT_TOPIC:-nayai/analytic_update}
+      - MQTT_UNAME = ${MQTT_USER:-mqttuser}
+      - MQTT_PASS = ${MQTT_PASSWORD:-mqttpassword}
 
       # ========= POSTGRES =========
-      - PG_HOST=${DB_HOST_ANALYTICS:-${HOST_IP:-localhost}}
-      - PG_PORT=${DB_PORT_ANALYTICS}
-      - PG_DB=${DB_NAME_ANALYTICS:-analytics_db}
-      - PG_USER=${DB_USER_ANALYTICS:-admin}
-      - PG_PASS=${DB_PASSWORD_ANALYTICS:-change_me}
+      - PG_HOST = ${DB_HOST_ANALYTICS:-localhost}
+      - PG_PORT = ${DB_PORT_ANALYTICS:-5432}
+      - PG_DB = ${DB_NAME_ANALYTICS:-analytics_db}
+      - PG_USER = ${DB_USER_ANALYTICS:-admin}
+      - PG_PASS = ${DB_PASSWORD_ANALYTICS:-admin122}
 
       # ========= DIRECTORIES =========
-      - RUNTIME_FOLDER=${RUNTIME_FOLDER:-evidence}
-      - LOG_FOLDER=${LOG_FOLDER:-logs}
+      - RUNTIME_FOLDER = ${RUNTIME_FOLDER:-./app/evidence}
+      - LOG_FOLDER = ${LOG_FOLDER:-./app/logs}
 
-      # ========= API KEY =========
-      - api_key=${API_KEY_PIPELINE}
-
+      # ========= YOLO =========
       - YOLO_CONFIG_DIR=/app/.ultralytics
     volumes:
       - ./task:/app:delegated
       - ./video_data:/app/video_data
-      - ./shared_data/evidence:/app/evidence
+      - ./pipman/modules/evidence:/app/evidence
       - ./logs/task:/app/logs
     networks:
       - nayarta-network
