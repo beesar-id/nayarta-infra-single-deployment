@@ -10,6 +10,7 @@ export interface Container {
     type: string;
   }>;
   created: number;
+  profile?: Profile | 'unknown';
 }
 
 export interface ContainerDetail extends Container {

@@ -3,14 +3,7 @@ import { apiService } from '../services/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { ConfirmDialog } from './ConfirmDialog';
 import { Loader2, Trash2, HardDrive, ChevronDown, ChevronUp, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Volume } from '../types';
@@ -59,6 +52,7 @@ export const VolumeList: React.FC<VolumeListProps> = ({
       const result = await apiService.deleteVolume(volumeName);
       if (result.success) {
         toast.success(result.message || `Volume ${volumeName} deleted successfully`);
+        setDeleteConfirmDialog(null);
         onRefresh();
       } else {
         toast.error(result.message || 'Failed to delete volume');
@@ -67,7 +61,6 @@ export const VolumeList: React.FC<VolumeListProps> = ({
       toast.error(error.message || 'Failed to delete volume');
     } finally {
       setDeletingName(null);
-      setDeleteConfirmDialog(null);
     }
   };
 
@@ -337,25 +330,19 @@ export const VolumeList: React.FC<VolumeListProps> = ({
       )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmDialog?.open || false} onOpenChange={(open) => setDeleteConfirmDialog(prev => prev ? { ...prev, open } : null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Volume</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete volume "{deleteConfirmDialog?.volumeName}"? This action cannot be undone and may affect containers using this volume.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmDialog(null)} disabled={deletingName !== null}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deletingName !== null}>
-              {deletingName ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {deleteConfirmDialog && (
+        <ConfirmDialog
+          open={deleteConfirmDialog.open}
+          onOpenChange={(open) => setDeleteConfirmDialog(open ? deleteConfirmDialog : null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Volume"
+          description={`Apakah Anda yakin ingin menghapus volume "${deleteConfirmDialog.volumeName}"? Tindakan ini tidak dapat dibatalkan dan dapat mempengaruhi container yang menggunakan volume ini.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
+          loading={deletingName === deleteConfirmDialog.volumeName}
+        />
+      )}
     </>
   );
 };

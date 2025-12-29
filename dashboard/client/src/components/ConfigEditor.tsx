@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { apiService } from '../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Loader2, FileCode2, Settings2, Network, Edit, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -20,10 +19,12 @@ export const ConfigEditor: React.FC = () => {
 
   const [hostIp, setHostIp] = useState('');
   const [hostIpUpdating, setHostIpUpdating] = useState(false);
+  const [hostIpLoading, setHostIpLoading] = useState(true);
 
   const [envEditing, setEnvEditing] = useState(false);
   const [mediamtxEditing, setMediamtxEditing] = useState(false);
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'env' | 'mediamtx'>('env');
 
   const loadEnv = async () => {
     try {
@@ -94,8 +95,8 @@ export const ConfigEditor: React.FC = () => {
       setHostIpUpdating(true);
       const result = await apiService.updateHostIp(hostIp.trim());
       toast.success(result.message || 'HOST_IP dan SSE_ALLOW_ORIGINS berhasil diupdate');
-      // Reload env to show updated values
-      await loadEnv();
+      // Reload env and mediamtx to show updated values
+      await Promise.all([loadEnv(), loadMediamtx()]);
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal mengupdate HOST_IP');
       console.error(err);
@@ -116,6 +117,9 @@ export const ConfigEditor: React.FC = () => {
       const match = envContent.match(/^HOST_IP=(.+)$/m);
       if (match) {
         setHostIp(match[1].trim());
+        setHostIpLoading(false); // Enable input after data is loaded
+      } else {
+        setHostIpLoading(false); // Enable input even if HOST_IP not found
       }
     }
   }, [envContent]);
@@ -140,18 +144,18 @@ export const ConfigEditor: React.FC = () => {
                 value={hostIp}
                 onChange={(e) => setHostIp(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !hostIpUpdating) {
+                  if (e.key === 'Enter' && !hostIpUpdating && !hostIpLoading) {
                     updateHostIp();
                   }
                 }}
-                disabled={hostIpUpdating}
-                className="font-mono"
+                disabled={hostIpUpdating || hostIpLoading}
+                className="font-mono flex-1"
               />
               <Button
                 variant="default"
                 size="sm"
                 onClick={updateHostIp}
-                disabled={hostIpUpdating || !hostIp.trim()}
+                disabled={hostIpUpdating || !hostIp.trim() || hostIpLoading}
                 className="border border-primary"
               >
                 {hostIpUpdating ? (
@@ -194,30 +198,21 @@ export const ConfigEditor: React.FC = () => {
           </div>
         </CardHeader>
         {advancedExpanded && (
-          <CardContent className="px-3 pb-3 space-y-4">
-            {/* .env Section */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <FileCode2 className="h-4 w-4" />
-                  .env File
-                </Label>
-                {!envEditing ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setEnvEditing(true);
-                      if (!envContent) {
-                        loadEnv();
-                      }
-                    }}
-                    className="rounded-full"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
+          <CardContent className="px-3 pb-3">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'env' | 'mediamtx')} className="w-full">
+              <div className="flex items-center justify-between mb-3">
+                <TabsList>
+                  <TabsTrigger value="env" className="flex items-center gap-2">
+                    <FileCode2 className="h-4 w-4" />
+                    .env
+                  </TabsTrigger>
+                  <TabsTrigger value="mediamtx" className="flex items-center gap-2">
+                    <FileCode2 className="h-4 w-4" />
+                    mediamtx.yml
+                  </TabsTrigger>
+                </TabsList>
+                {activeTab === 'env' ? (
+                  envEditing ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -229,80 +224,23 @@ export const ConfigEditor: React.FC = () => {
                     >
                       Cancel
                     </Button>
-                  </div>
-                )}
-              </div>
-              {envLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <>
-                  <Textarea
-                    value={envContent}
-                    onChange={(e) => setEnvContent(e.target.value)}
-                    className="font-mono text-xs min-h-[200px]"
-                    spellCheck={false}
-                    disabled={!envEditing}
-                  />
-                  {envEditing && (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={loadEnv}
-                        disabled={envLoading || envSaving}
-                        className="border border-primary"
-                      >
-                        {envLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reload'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          await saveEnv();
-                          setEnvEditing(false);
-                        }}
-                        disabled={envSaving}
-                        className="border border-primary"
-                      >
-                        {envSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          'Save'
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* mediamtx.yml Section */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2">
-                  <FileCode2 className="h-4 w-4" />
-                  mediamtx.yml
-                </Label>
-                {!mediamtxEditing ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setMediamtxEditing(true);
-                      if (!mediamtxContent) {
-                        loadMediamtx();
-                      }
-                    }}
-                    className="rounded-full"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEnvEditing(true);
+                        if (!envContent) {
+                          loadEnv();
+                        }
+                      }}
+                      className="rounded-full"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )
                 ) : (
-                  <div className="flex gap-2">
+                  mediamtxEditing ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -314,57 +252,122 @@ export const ConfigEditor: React.FC = () => {
                     >
                       Cancel
                     </Button>
-                  </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setMediamtxEditing(true);
+                        if (!mediamtxContent) {
+                          loadMediamtx();
+                        }
+                      }}
+                      className="rounded-full"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )
                 )}
               </div>
-              {mediamtxLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <>
-                  <Textarea
-                    value={mediamtxContent}
-                    onChange={(e) => setMediamtxContent(e.target.value)}
-                    className="font-mono text-xs min-h-[200px]"
-                    spellCheck={false}
-                    disabled={!mediamtxEditing}
-                  />
-                  {mediamtxEditing && (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={loadMediamtx}
-                        disabled={mediamtxLoading || mediamtxSaving}
-                        className="border border-primary"
-                      >
-                        {mediamtxLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reload'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          await saveMediamtx();
-                          setMediamtxEditing(false);
-                        }}
-                        disabled={mediamtxSaving}
-                        className="border border-primary"
-                      >
-                        {mediamtxSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          'Save'
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+
+              <TabsContent value="env" className="mt-0 space-y-2">
+                {envLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    <Textarea
+                      value={envContent}
+                      onChange={(e) => setEnvContent(e.target.value)}
+                      className="font-mono text-xs min-h-[400px]"
+                      spellCheck={false}
+                      disabled={!envEditing}
+                    />
+                    {envEditing && (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={loadEnv}
+                          disabled={envLoading || envSaving}
+                          className="border border-primary"
+                        >
+                          {envLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reload'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            await saveEnv();
+                            setEnvEditing(false);
+                          }}
+                          disabled={envSaving}
+                          className="border border-primary"
+                        >
+                          {envSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Save'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+
+              <TabsContent value="mediamtx" className="mt-0 space-y-2">
+                {mediamtxLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    <Textarea
+                      value={mediamtxContent}
+                      onChange={(e) => setMediamtxContent(e.target.value)}
+                      className="font-mono text-xs min-h-[400px]"
+                      spellCheck={false}
+                      disabled={!mediamtxEditing}
+                    />
+                    {mediamtxEditing && (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={loadMediamtx}
+                          disabled={mediamtxLoading || mediamtxSaving}
+                          className="border border-primary"
+                        >
+                          {mediamtxLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Reload'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            await saveMediamtx();
+                            setMediamtxEditing(false);
+                          }}
+                          disabled={mediamtxSaving}
+                          className="border border-primary"
+                        >
+                          {mediamtxSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Save'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         )}
       </Card>
+
     </div>
   );
 };

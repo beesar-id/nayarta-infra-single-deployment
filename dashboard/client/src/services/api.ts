@@ -1,7 +1,8 @@
 import axios from 'axios';
-import type { Container, ContainerDetail, Profile, ComposeAction, Image, PullProgress, Volume } from '../types';
+import type { Container, ContainerDetail, Profile, Image, PullProgress, Volume } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative path for proxy in development, or full URL if VITE_API_URL is set
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -9,6 +10,30 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add request interceptor for debugging
+// api.interceptors.request.use(
+//   (config) => {
+//     console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+//     return config;
+//   },
+//   (error) => {
+//     console.error('[API Request Error]', error);
+//     return Promise.reject(error);
+//   }
+// );
+
+// Add response interceptor for debugging
+// api.interceptors.response.use(
+//   (response) => {
+//     console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, response.status);
+//     return response;
+//   },
+//   (error) => {
+//     console.error('[API Response Error]', error.response?.status, error.response?.data || error.message);
+//     return Promise.reject(error);
+//   }
+// );
 
 export const apiService = {
   // Get all profiles
@@ -39,6 +64,12 @@ export const apiService = {
   // Container control
   containerAction: async (id: string, action: 'start' | 'stop' | 'restart' | 'remove'): Promise<{ success: boolean; message: string }> => {
     const response = await api.post(`/api/containers/${id}/${action}`);
+    return response.data;
+  },
+
+  // Apply changes (docker compose down and up)
+  applyChanges: async (): Promise<{ success: boolean; message: string; applied: string[]; errors: string[] }> => {
+    const response = await api.post('/api/containers/apply');
     return response.data;
   },
 

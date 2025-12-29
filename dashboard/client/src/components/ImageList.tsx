@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { ConfirmDialog } from './ConfirmDialog';
 import { Loader2, Download, Trash2, Disc3, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Image, PullProgress } from '../types';
@@ -160,11 +161,11 @@ export const ImageList: React.FC<ImageListProps> = ({
 
     const { imageId } = deleteConfirmDialog;
     setDeletingId(imageId);
-    setDeleteConfirmDialog(null);
 
     try {
       await apiService.deleteImage(imageId);
       toast.success('Image deleted successfully');
+      setDeleteConfirmDialog(null);
       onRefresh();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete image');
@@ -583,56 +584,19 @@ export const ImageList: React.FC<ImageListProps> = ({
       </Dialog>
 
       {/* Delete Confirm Dialog */}
-      <Dialog 
-        open={deleteConfirmDialog?.open || false} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteConfirmDialog(null);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Image</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this image? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteConfirmDialog && (
-            <div className="py-4">
-              <p className="text-sm">
-                <span className="font-medium">Image:</span>{' '}
-                {deleteConfirmDialog.imageTags && deleteConfirmDialog.imageTags.length > 0 && deleteConfirmDialog.imageTags[0] !== '<none>:<none>'
-                  ? deleteConfirmDialog.imageTags[0]
-                  : 'null'}
-              </p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteConfirmDialog(null)}
-              disabled={deletingId !== null}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deletingId !== null}
-            >
-              {deletingId ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {deleteConfirmDialog && (
+        <ConfirmDialog
+          open={deleteConfirmDialog.open}
+          onOpenChange={(open) => setDeleteConfirmDialog(open ? deleteConfirmDialog : null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Image"
+          description={`Apakah Anda yakin ingin menghapus image "${deleteConfirmDialog.imageTags && deleteConfirmDialog.imageTags.length > 0 && deleteConfirmDialog.imageTags[0] !== '<none>:<none>' ? deleteConfirmDialog.imageTags[0] : 'null'}"? Tindakan ini tidak dapat dibatalkan.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
+          loading={deletingId === deleteConfirmDialog.imageId}
+        />
+      )}
     </>
   );
 };

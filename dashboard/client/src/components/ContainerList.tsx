@@ -13,7 +13,8 @@ import {
 import { ContainerDetailsDialog } from './ContainerDetailsDialog';
 import { ContainerLogsDialog } from './ContainerLogsDialog';
 import { ContainerEnvDialog } from './ContainerEnvDialog';
-import { Loader2, Container as PackageContainer, Clock, ChevronDown, ChevronUp, MoreVertical, Play, Square, RotateCw, FileText, Settings, Trash2, ContainerIcon, Pause, Search, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
+import { Loader2, Container as PackageContainer, Clock, ChevronDown, ChevronUp, MoreVertical, Play, RotateCw, FileText, Settings, Trash2, Pause, Search, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Container } from '@/types';
 
@@ -31,15 +32,20 @@ export const ContainerList: React.FC<ContainerListProps> = ({
   const [detailsDialog, setDetailsDialog] = useState<{ open: boolean; containerId: string; containerName: string } | null>(null);
   const [logsDialog, setLogsDialog] = useState<{ open: boolean; containerId: string; containerName: string } | null>(null);
   const [envDialog, setEnvDialog] = useState<{ open: boolean; containerId: string; containerName: string } | null>(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{ open: boolean; containerId: string; containerName: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
   const handleContainerAction = async (id: string, action: 'start' | 'stop' | 'restart' | 'remove') => {
     if (action === 'remove') {
-      if (!confirm(`Apakah Anda yakin ingin menghapus container ini?`)) {
-        return;
-      }
+      const container = containers.find(c => c.id === id);
+      setDeleteConfirmDialog({ 
+        open: true, 
+        containerId: id, 
+        containerName: container?.name || 'this container' 
+      });
+      return;
     }
     
     setLoading(id);
@@ -52,6 +58,26 @@ export const ContainerList: React.FC<ContainerListProps> = ({
     } catch (error: any) {
       toast.error(error.response?.data?.error || `Gagal ${action} container`);
       console.error('Error performing action:', error);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmDialog) return;
+    
+    setLoading(deleteConfirmDialog.containerId);
+    setDeleteConfirmDialog(null);
+    
+    try {
+      await apiService.containerAction(deleteConfirmDialog.containerId, 'remove');
+      toast.success('Container removed successfully');
+      setTimeout(() => {
+        onRefresh();
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Gagal menghapus container');
+      console.error('Error removing container:', error);
     } finally {
       setLoading(null);
     }
@@ -153,7 +179,7 @@ export const ContainerList: React.FC<ContainerListProps> = ({
       {/* Results Info */}
       {searchQuery && (
         <div className="mb-2 text-sm text-muted-foreground">
-          Found {filteredContainers.length} container{filteredContainers.length !== 1 ? 's' : ''} matching "{searchQuery}"
+          Found {filteredContainers.length} container{filteredContainers.length === 1 ? '' : 's'} matching "{searchQuery}"
         </div>
       )}
 
@@ -182,29 +208,36 @@ export const ContainerList: React.FC<ContainerListProps> = ({
               <CardContent className="p-2 px-2">
                 <div className="flex items-center gap-4">
                   {/* Icon Container */}
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     <PackageContainer className="h-5 w-5 text-primary" />
                   </div>
 
                   {/* Container Info */}
-                  <div className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center">
+                  <div className="flex-1 grid grid-cols-12 gap-4 items-center">
                   {/* Container Name Section */}
-                  <div className="min-w-0 col-span-3">
+                  <div className="col-span-4 overflow-hidden">
                     <p className="text-xs text-muted-foreground mb-0.5">Container Name</p>
-                    <p className="font-medium text-sm truncate">{container.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{container.name}</p>
+                      {container.profile && container.profile !== 'unknown' && (
+                        <Badge variant="outline" className="text-xs rounded-full border-primary">
+                          {container.profile}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       ID: {container.id.substring(0, 12)}
                     </p>
                   </div>
 
                   {/* Image Section */}
-                  <div className="min-w-0 col-span-3">
+                  <div className="col-span-4 overflow-hidden">
                     <p className="text-xs text-muted-foreground mb-0.5">Image</p>
                     <p className="text-sm truncate">{container.image}</p>
                   </div>
 
                   {/* Status Section */}
-                  <div className="min-w-0 col-span-3">
+                  <div className="col-span-3 overflow-hidden">
                     <p className="text-xs text-muted-foreground mb-0.5">Status</p>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {getStatusBadge(container.state)}
@@ -215,13 +248,13 @@ export const ContainerList: React.FC<ContainerListProps> = ({
                   </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1 justify-end col-span-3">
+                    <div className="flex items-center gap-1 justify-end col-span-1">
                       <Button
                         onClick={() => toggleExpand(container.id)}
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         title="Toggle Details"
-                        className="h-8 w-8 p-0"
+                        className="rounded-full"
                       >
                         {isExpanded ? (
                           <ChevronUp className="h-4 w-4" />
@@ -320,7 +353,7 @@ export const ContainerList: React.FC<ContainerListProps> = ({
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, filteredContainers.length)} of {filteredContainers.length} container{filteredContainers.length !== 1 ? 's' : ''}
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredContainers.length)} of {filteredContainers.length} container{filteredContainers.length === 1 ? '' : 's'}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -373,6 +406,21 @@ export const ContainerList: React.FC<ContainerListProps> = ({
           onOpenChange={(open) => setEnvDialog(open ? envDialog : null)}
           containerId={envDialog.containerId}
           containerName={envDialog.containerName}
+        />
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmDialog && (
+        <ConfirmDialog
+          open={deleteConfirmDialog.open}
+          onOpenChange={(open) => setDeleteConfirmDialog(open ? deleteConfirmDialog : null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Container"
+          description={`Apakah Anda yakin ingin menghapus container "${deleteConfirmDialog.containerName}"? Tindakan ini tidak dapat dibatalkan.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
+          loading={loading === deleteConfirmDialog.containerId}
         />
       )}
     </>
