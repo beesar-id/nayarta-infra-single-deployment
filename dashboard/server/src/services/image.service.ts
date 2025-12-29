@@ -22,7 +22,7 @@ export class ImageService {
   async pullImage(imageName: string): Promise<{ progressId: string }> {
     const progressId = `${imageName}-${Date.now()}`;
     pullProgress.set(progressId, { 
-      status: 'starting', 
+      status: 'Connecting to registry...', 
       progress: 0, 
       logs: [],
       imageName: imageName
@@ -41,9 +41,10 @@ export class ImageService {
         return;
       }
       
+      // Update status immediately when stream is ready
       pullProgress.set(progressId, {
-        status: 'Pulling from registry',
-        progress: 0,
+        status: 'Checking for updates...',
+        progress: 5,
         logs: [],
         imageName: imageName
       });
@@ -73,12 +74,51 @@ export class ImageService {
             try {
               const json = JSON.parse(line);
               
+              // Check for "Image is up to date" or "already exists" messages
+              const statusText = json.status || '';
+              const isUpToDate = statusText.includes('Image is up to date') || 
+                                statusText.includes('already exists') ||
+                                statusText.includes('already up to date') ||
+                                statusText.includes('Status: Image is up to date');
+              
+              if (isUpToDate) {
+                // Image is already up to date, mark as completed immediately
+                const updatedCurrent = pullProgress.get(progressId);
+                if (updatedCurrent && updatedCurrent.status !== 'cancelled') {
+                  pullProgress.set(progressId, {
+                    status: 'Image is up to date',
+                    progress: 100,
+                    logs: [...(updatedCurrent.logs || []), json],
+                    id: json.id || updatedCurrent.id,
+                    progressDetail: json.progressDetail || updatedCurrent.progressDetail,
+                    imageName: updatedCurrent.imageName || imageName,
+                  });
+                }
+                // Complete the pull immediately
+                setTimeout(() => {
+                  const finalCurrent = pullProgress.get(progressId);
+                  if (finalCurrent && finalCurrent.status !== 'cancelled') {
+                    pullProgress.set(progressId, {
+                      ...finalCurrent,
+                      status: 'completed',
+                      progress: 100,
+                    });
+                    pullStreams.delete(progressId);
+                  }
+                }, 500);
+                continue;
+              }
+              
               let progress = current.progress || 0;
               if (json.progressDetail && json.progressDetail.current && json.progressDetail.total) {
                 progress = Math.round((json.progressDetail.current / json.progressDetail.total) * 100);
               } else if (json.status) {
                 if (json.status.includes('Downloading') || json.status.includes('Pulling')) {
                   progress = Math.min((current.progress || 0) + 1, 99);
+                } else if (json.status.includes('Extracting') || json.status.includes('Verifying')) {
+                  progress = Math.min((current.progress || 0) + 2, 99);
+                } else if (json.status.includes('Pull complete') || json.status.includes('Download complete')) {
+                  progress = Math.min((current.progress || 0) + 10, 99);
                 }
               }
               
@@ -125,37 +165,36 @@ export class ImageService {
         }
       });
       
-      const timeout = setTimeout(() => {
-        const current = pullProgress.get(progressId);
-        if (current && current.status === 'starting' && current.progress === 0) {
-          pullProgress.set(progressId, {
-            ...current,
-            status: 'Connecting to registry...',
-            progress: 1,
-          });
-        }
-      }, 2000);
-      
       stream.on('end', () => {
-        clearTimeout(timeout);
         const current = pullProgress.get(progressId);
         if (current && current.status !== 'cancelled') {
+          // If status is already "Image is up to date", keep it, otherwise mark as completed
+          const finalStatus = current.status === 'Image is up to date' 
+            ? 'completed' 
+            : 'completed';
+          
+          // Add completion log entry
+          const completionLog = {
+            status: finalStatus === 'completed' ? 'Pull complete' : 'Image is up to date',
+            id: current.id,
+          };
+          
           pullProgress.set(progressId, {
-            status: 'completed',
+            status: finalStatus,
             progress: 100,
-            logs: current.logs || [],
+            logs: [...(current.logs || []), completionLog],
             imageName: current.imageName || imageName,
           });
         }
         pullStreams.delete(progressId);
         
+        // Keep progress for a bit longer so frontend can fetch final status
         setTimeout(() => {
           pullProgress.delete(progressId);
-        }, 5 * 60 * 1000);
+        }, 10 * 1000); // 10 seconds instead of 5 minutes
       });
       
       stream.on('error', (err: any) => {
-        clearTimeout(timeout);
         const current = pullProgress.get(progressId);
         if (current && current.status !== 'cancelled') {
           pullProgress.set(progressId, {
