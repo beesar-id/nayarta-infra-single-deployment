@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileCode2, Settings2, Network, Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, FileCode2, Settings2, Network, Edit, ChevronDown, ChevronUp, Wrench, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const ConfigEditor: React.FC = () => {
@@ -20,6 +20,9 @@ export const ConfigEditor: React.FC = () => {
   const [hostIp, setHostIp] = useState('');
   const [hostIpUpdating, setHostIpUpdating] = useState(false);
   const [hostIpLoading, setHostIpLoading] = useState(true);
+  const [pullImageLoading, setPullImageLoading] = useState(false);
+  const [githubToken, setGithubToken] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const [envEditing, setEnvEditing] = useState(false);
   const [mediamtxEditing, setMediamtxEditing] = useState(false);
@@ -105,6 +108,53 @@ export const ConfigEditor: React.FC = () => {
     }
   };
 
+  const pullImageByIp = async () => {
+    if (!hostIp.trim()) {
+      toast.error('IP address tidak boleh kosong');
+      return;
+    }
+
+    if (!githubToken.trim()) {
+      toast.error('GitHub PAT token tidak boleh kosong');
+      return;
+    }
+
+    // Basic IP validation
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(hostIp.trim())) {
+      toast.error('Format IP address tidak valid');
+      return;
+    }
+
+    try {
+      setPullImageLoading(true);
+      const result = await apiService.pullImageByIp(hostIp.trim(), githubToken.trim());
+      toast.success(result.message || 'Image build berhasil di-trigger');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal trigger image build');
+      console.error(err);
+    } finally {
+      setPullImageLoading(false);
+    }
+  };
+
+  const resetToDefault = async () => {
+    try {
+      setResetLoading(true);
+      const result = await apiService.resetToDefault();
+      toast.success(result.message || 'Berhasil reset ke default');
+      // Reload all configs to show updated values
+      await Promise.all([loadEnv(), loadMediamtx()]);
+      // Reset host IP to localhost
+      setHostIp('localhost');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal reset ke default');
+      console.error(err);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Load both configs on first mount
     loadEnv();
@@ -136,40 +186,93 @@ export const ConfigEditor: React.FC = () => {
         </CardHeader>
         <CardContent className="px-3 pb-3">
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Input
-                id="host-ip-input"
-                type="text"
-                placeholder="e.g., 192.168.1.100"
-                value={hostIp}
-                onChange={(e) => setHostIp(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !hostIpUpdating && !hostIpLoading) {
-                    updateHostIp();
-                  }
-                }}
-                disabled={hostIpUpdating || hostIpLoading}
-                className="font-mono flex-1"
-              />
-              <Button
-                variant="default"
-                size="sm"
-                onClick={updateHostIp}
-                disabled={hostIpUpdating || !hostIp.trim() || hostIpLoading}
-                className="border border-primary"
-              >
-                {hostIpUpdating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <Network className="h-4 w-4" />
-                    Update Host IP
-                  </>
-                )}
-              </Button>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="host-ip-input"
+                  type="text"
+                  placeholder="e.g., 192.168.1.100"
+                  value={hostIp}
+                  onChange={(e) => setHostIp(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !hostIpUpdating && !hostIpLoading) {
+                      updateHostIp();
+                    }
+                  }}
+                  disabled={hostIpUpdating || hostIpLoading || pullImageLoading || resetLoading}
+                  className="font-mono flex-1"
+                />
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={updateHostIp}
+                  disabled={hostIpUpdating || !hostIp.trim() || hostIpLoading || pullImageLoading || resetLoading}
+                  className="border border-primary"
+                >
+                  {hostIpUpdating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Network className="h-4 w-4" />
+                      Update Host IP
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="github-token-input"
+                  type="password"
+                  placeholder="GitHub PAT Token (ghp_...)"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  disabled={pullImageLoading || hostIpUpdating || hostIpLoading || resetLoading}
+                  className="font-mono flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={pullImageByIp}
+                  disabled={pullImageLoading || !hostIp.trim() || !githubToken.trim() || hostIpLoading || hostIpUpdating || resetLoading}
+                  className="border border-primary"
+                >
+                  {pullImageLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Pulling...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="h-4 w-4" />
+                      Build Image by IP
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetToDefault}
+                  disabled={resetLoading || hostIpUpdating || pullImageLoading || hostIpLoading}
+                  className="border border-primary"
+                >
+                  {resetLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Resetting...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="h-4 w-4" />
+                      Reset Default
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

@@ -182,5 +182,17 @@ export const apiService = {
     const response = await api.put('/api/config/host-ip', { ip });
     return response.data;
   },
+
+  // Pull Image by IP
+  pullImageByIp: async (ip: string, githubToken?: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/api/config/pull-image', { ip, githubToken });
+    return response.data;
+  },
+
+  // Reset to Default
+  resetToDefault: async (): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/api/config/reset-default');
+    return response.data;
+  },
 };
 
