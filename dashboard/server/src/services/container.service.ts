@@ -1,5 +1,6 @@
 import { docker } from '../config/docker';
-import { PROFILE_KEYWORDS } from '../config/constants';
+import { PROFILE_KEYWORDS, PROFILES } from '../config/constants';
+import { DockerComposeService } from './docker-compose.service';
 import type { Container, ContainerDetail, ContainerStats, Profile } from '../types';
 
 export class ContainerService {
@@ -52,19 +53,25 @@ export class ContainerService {
         });
       }
 
-      return filteredContainers.map((container) => ({
-        id: container.Id,
-        name: container.Names?.[0]?.replace('/', '') || 'unknown',
-        image: container.Image,
-        status: container.Status,
-        state: container.State,
-        ports: container.Ports?.map(p => ({
-          private: p.PrivatePort,
-          public: p.PublicPort,
-          type: p.Type,
-        })) || [],
-        created: container.Created,
-      }));
+      return filteredContainers.map((container) => {
+        // Determine profile from container
+        const containerProfile = this.determineContainerProfile(container);
+        
+        return {
+          id: container.Id,
+          name: container.Names?.[0]?.replace('/', '') || 'unknown',
+          image: container.Image,
+          status: container.Status,
+          state: container.State,
+          ports: container.Ports?.map(p => ({
+            private: p.PrivatePort,
+            public: p.PublicPort,
+            type: p.Type,
+          })) || [],
+          created: container.Created,
+          profile: containerProfile,
+        };
+      });
     } catch (error: any) {
       throw new Error(`Failed to list containers: ${error.message}`);
     }
@@ -225,6 +232,109 @@ export class ContainerService {
         break;
       default:
         throw new Error('Invalid action');
+    }
+  }
+
+  /**
+   * Determine container profile based on names, image, and labels
+   */
+  private determineContainerProfile(container: any): Profile | 'unknown' {
+    const names = container.Names || [];
+    const image = container.Image || '';
+    const labels = container.labels || {};
+    
+    // Check each profile
+    for (const [profile, keywords] of Object.entries(PROFILE_KEYWORDS)) {
+      const profileKeywords = keywords as string[];
+      const matches = profileKeywords.some(keyword => 
+        names.some((name: string | string[]) => name.toString().toLowerCase().includes(keyword)) ||
+        image.toLowerCase().includes(keyword) ||
+        Object.values(labels).some((labelValue: string) => labelValue.toLowerCase().includes(keyword))
+      );
+      
+      if (matches) {
+        return profile as Profile;
+      }
+    }
+    
+    return 'unknown';
+  }
+
+  /**
+   * Apply changes by doing docker compose down and up for profiles with running containers
+   */
+  async applyChanges(): Promise<{ applied: string[]; errors: string[] }> {
+    try {
+      const containers = await docker.listContainers({ all: false }); // Only running containers
+      
+      // Filter to only project containers
+      const inspectPromises = containers.map(async (container) => {
+        try {
+          const containerInstance = docker.getContainer(container.Id);
+          const inspect = await containerInstance.inspect();
+          return {
+            ...container,
+            labels: inspect.Config.Labels || {},
+          };
+        } catch (error) {
+          return {
+            ...container,
+            labels: {},
+          };
+        }
+      });
+
+      const containersWithLabels = await Promise.all(inspectPromises);
+      
+      const projectContainers = containersWithLabels.filter((container) => {
+        const labels = container.labels || {};
+        return labels['com.project.name'] === 'nayarta';
+      });
+
+      // Determine which profiles have running containers
+      const profilesWithContainers = new Set<Profile>();
+      
+      for (const container of projectContainers) {
+        const profile = this.determineContainerProfile(container);
+        if (profile !== 'unknown' && PROFILES.includes(profile)) {
+          profilesWithContainers.add(profile);
+        }
+      }
+
+      if (profilesWithContainers.size === 0) {
+        return { applied: [], errors: ['No running containers found'] };
+      }
+
+      const composeService = new DockerComposeService();
+      const applied: string[] = [];
+      const errors: string[] = [];
+
+      // For each profile, do down then up
+      for (const profile of profilesWithContainers) {
+        try {
+          // First, do down
+          const downResult = await composeService.execute(profile, 'down', false);
+          if (!downResult.success) {
+            errors.push(`Profile ${profile} down failed: ${downResult.error}`);
+            continue;
+          }
+
+          // Then, do up
+          const upResult = await composeService.execute(profile, 'up', true);
+          if (!upResult.success) {
+            errors.push(`Profile ${profile} up failed: ${upResult.error}`);
+            continue;
+          }
+
+          applied.push(profile);
+        } catch (error: any) {
+          errors.push(`Profile ${profile}: ${error.message}`);
+        }
+      }
+
+      return { applied: Array.from(applied), errors };
+    } catch (error: any) {
+      throw new Error(`Failed to apply changes: ${error.message}`);
     }
   }
 }

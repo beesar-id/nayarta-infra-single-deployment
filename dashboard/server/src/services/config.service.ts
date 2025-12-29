@@ -71,6 +71,13 @@ export class ConfigService {
         throw new Error('Invalid IP address format');
       }
 
+      // Get old IP from HOST_IP before updating
+      let oldIp: string | null = null;
+      const oldIpMatch = content.match(/^HOST_IP=(.+)$/m);
+      if (oldIpMatch && ipRegex.test(oldIpMatch[1].trim())) {
+        oldIp = oldIpMatch[1].trim();
+      }
+
       const lines = content.split('\n');
       let hostIpFound = false;
       let sseAllowOriginsFound = false;
@@ -180,8 +187,136 @@ export class ConfigService {
       // Write updated content
       const updatedContent = updatedLines.join('\n');
       await fs.writeFile(path, updatedContent, 'utf8');
+
+      // Also update mediamtx.yml webrtcAdditionalHosts
+      await this.updateMediamtxWebrtcHosts(ip, oldIp);
     } catch (error: any) {
       throw new Error(`Failed to update HOST_IP: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update webrtcAdditionalHosts in mediamtx.yml
+   * Uses regex to preserve comments and formatting
+   */
+  private static async updateMediamtxWebrtcHosts(newIp: string, oldIp: string | null): Promise<void> {
+    const path = this.getMediamtxPath();
+    try {
+      // Read current mediamtx.yml content
+      const content = await this.getMediamtxConfig();
+      
+      // IP regex for validation
+      const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+      
+      // Find the webrtcAdditionalHosts line
+      const lines = content.split('\n');
+      const updatedLines: string[] = [];
+      let webrtcHostsFound = false;
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // Match webrtcAdditionalHosts line (with or without comment)
+        if (trimmedLine.startsWith('webrtcAdditionalHosts:')) {
+          webrtcHostsFound = true;
+          
+          // Parse the array value from the line
+          // Format: webrtcAdditionalHosts: ["localhost", "127.0.0.1", "192.168.1.100"]
+          const arrayMatch = line.match(/webrtcAdditionalHosts:\s*(.+?)(\s*#.*)?$/);
+          
+          if (arrayMatch) {
+            const arrayValue = arrayMatch[1].trim();
+            
+            // Parse the array (handle both YAML array format and inline format)
+            let hosts: string[] = [];
+            
+            // Try to parse as YAML array: ["item1", "item2"] or [item1, item2]
+            const arrayContentMatch = arrayValue.match(/\[(.*?)\]/);
+            if (arrayContentMatch) {
+              const itemsStr = arrayContentMatch[1];
+              // Split by comma and clean up quotes
+              hosts = itemsStr
+                .split(',')
+                .map(item => item.trim().replaceAll(/(^["']|["']$)/g, ''))
+                .filter(item => item.length > 0);
+            } else {
+              // Fallback: treat as single value
+              const singleValue = arrayValue.replaceAll(/(^["']|["']$)/g, '');
+              if (singleValue) {
+                hosts = [singleValue];
+              }
+            }
+            
+            // If old IP exists, replace it with new IP
+            if (oldIp && oldIp !== newIp) {
+              hosts = hosts.map((host: string) => {
+                if (host === oldIp) {
+                  return newIp;
+                }
+                return host;
+              });
+            }
+            
+            // Remove other IP addresses (keep only localhost, 127.0.0.1, and the new IP)
+            hosts = hosts.filter((host: string) => {
+              // Keep localhost and 127.0.0.1
+              if (host === 'localhost' || host === '127.0.0.1') {
+                return true;
+              }
+              // Keep the new IP
+              if (host === newIp) {
+                return true;
+              }
+              // Remove other IP addresses
+              return !ipRegex.test(host);
+            });
+            
+            // Add new IP if not already present
+            if (!hosts.includes(newIp)) {
+              hosts.push(newIp);
+            }
+            
+            // Reconstruct the line with preserved formatting and comments
+            const comment = arrayMatch[2] || '';
+            const indent = line.match(/^(\s*)/)?.[1] || '';
+            const formattedHosts = hosts.map(h => `"${h}"`).join(', ');
+            updatedLines.push(`${indent}webrtcAdditionalHosts: [${formattedHosts}]${comment}`);
+          } else {
+            // If we can't parse, keep the original line
+            updatedLines.push(line);
+          }
+        } else {
+          // Keep all other lines as-is (preserves comments)
+          updatedLines.push(line);
+        }
+      }
+      
+      // If webrtcAdditionalHosts not found, add it (find a good place after webrtc settings)
+      if (!webrtcHostsFound) {
+        let insertIndex = -1;
+        for (let i = 0; i < updatedLines.length; i++) {
+          if (updatedLines[i].trim().startsWith('webrtcLocalTCPAddress:')) {
+            insertIndex = i + 1;
+            break;
+          }
+        }
+        
+        if (insertIndex === -1) {
+          // If we can't find a good place, append at the end of webrtc section
+          insertIndex = updatedLines.length;
+        }
+        
+        const hosts = ['localhost', '127.0.0.1', newIp].filter(Boolean);
+        const formattedHosts = hosts.map(h => `"${h}"`).join(', ');
+        updatedLines.splice(insertIndex, 0, `webrtcAdditionalHosts: [${formattedHosts}]`);
+      }
+      
+      // Write updated content (preserves all comments and formatting)
+      const updatedContent = updatedLines.join('\n');
+      await fs.writeFile(path, updatedContent, 'utf8');
+    } catch (error: any) {
+      // Log error but don't throw - we don't want to fail the entire update if mediamtx update fails
+      console.warn(`Failed to update mediamtx.yml webrtcAdditionalHosts: ${error.message}`);
     }
   }
 }

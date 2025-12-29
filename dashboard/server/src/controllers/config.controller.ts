@@ -65,7 +65,7 @@ export class ConfigController {
   }
 
   /**
-   * @summary Update HOST_IP, SSE_ALLOW_ORIGINS, BASE_URL, and HOMEPAGE_URL
+   * @summary Update Host IP
    * @description Update HOST_IP variable, add IP to SSE_ALLOW_ORIGINS, and replace localhost with IP in BASE_URL and HOMEPAGE_URL in .env file
    * @tags Config
    */

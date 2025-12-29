@@ -122,5 +122,23 @@ export class ContainerController {
       return c.json({ error: error.message }, 500);
     }
   }
+
+  /**
+   * @summary Apply changes (docker compose down and up)
+   * @description Apply configuration changes by doing docker compose down and up for profiles with running containers
+   */
+  static async applyChanges(c: Context) {
+    try {
+      const result = await containerService.applyChanges();
+      return c.json({ 
+        success: true, 
+        message: `Applied changes to ${result.applied.length} profile(s): ${result.applied.join(', ')}`,
+        applied: result.applied,
+        errors: result.errors,
+      });
+    } catch (error: any) {
+      return c.json({ error: error.message }, 500);
+    }
+  }
 }
 

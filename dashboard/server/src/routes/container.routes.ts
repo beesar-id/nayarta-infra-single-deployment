@@ -45,6 +45,13 @@ router.post('/containers/stats/aggregate', ContainerController.getAggregateStats
  */
 router.post('/containers/:id/:action', ContainerController.containerAction);
 
+/**
+ * @route POST /api/containers/apply
+ * @summary Apply changes (docker compose down and up)
+ * @description Apply configuration changes by doing docker compose down and up for profiles with running containers
+ */
+router.post('/containers/apply', ContainerController.applyChanges);
+
 export default router;
 
 

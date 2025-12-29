@@ -29,7 +29,7 @@ router.put('/config/mediamtx', ConfigController.updateMediamtx);
 
 /**
  * @route PUT /api/config/host-ip
- * @summary Update HOST_IP and SSE_ALLOW_ORIGINS
+ * @summary Update Host IP
  */
 router.put('/config/host-ip', ConfigController.updateHostIp);
 
