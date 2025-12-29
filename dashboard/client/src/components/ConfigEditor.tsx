@@ -20,7 +20,7 @@ export const ConfigEditor: React.FC = () => {
   const [hostIp, setHostIp] = useState('');
   const [hostIpUpdating, setHostIpUpdating] = useState(false);
   const [hostIpLoading, setHostIpLoading] = useState(true);
-  const [pullImageLoading, setPullImageLoading] = useState(false);
+  const [buildImageLoading, setBuildImageLoading] = useState(false);
   const [githubToken, setGithubToken] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
@@ -108,7 +108,7 @@ export const ConfigEditor: React.FC = () => {
     }
   };
 
-  const pullImageByIp = async () => {
+  const buildImageByIp = async () => {
     if (!hostIp.trim()) {
       toast.error('IP address tidak boleh kosong');
       return;
@@ -127,14 +127,14 @@ export const ConfigEditor: React.FC = () => {
     }
 
     try {
-      setPullImageLoading(true);
-      const result = await apiService.pullImageByIp(hostIp.trim(), githubToken.trim());
+      setBuildImageLoading(true);
+      const result = await apiService.buildImageByIp(hostIp.trim(), githubToken.trim());
       toast.success(result.message || 'Image build berhasil di-trigger');
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal trigger image build');
       console.error(err);
     } finally {
-      setPullImageLoading(false);
+      setBuildImageLoading(false);
     }
   };
 
@@ -199,14 +199,14 @@ export const ConfigEditor: React.FC = () => {
                       updateHostIp();
                     }
                   }}
-                  disabled={hostIpUpdating || hostIpLoading || pullImageLoading || resetLoading}
+                  disabled={hostIpUpdating || hostIpLoading || buildImageLoading || resetLoading}
                   className="font-mono flex-1"
                 />
                 <Button
                   variant="default"
                   size="sm"
                   onClick={updateHostIp}
-                  disabled={hostIpUpdating || !hostIp.trim() || hostIpLoading || pullImageLoading || resetLoading}
+                  disabled={hostIpUpdating || !hostIp.trim() || hostIpLoading || buildImageLoading || resetLoading}
                   className="border border-primary"
                 >
                   {hostIpUpdating ? (
@@ -229,17 +229,17 @@ export const ConfigEditor: React.FC = () => {
                   placeholder="GitHub PAT Token (ghp_...)"
                   value={githubToken}
                   onChange={(e) => setGithubToken(e.target.value)}
-                  disabled={pullImageLoading || hostIpUpdating || hostIpLoading || resetLoading}
+                  disabled={buildImageLoading || hostIpUpdating || hostIpLoading || resetLoading}
                   className="font-mono flex-1"
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={pullImageByIp}
-                  disabled={pullImageLoading || !hostIp.trim() || !githubToken.trim() || hostIpLoading || hostIpUpdating || resetLoading}
+                  onClick={buildImageByIp}
+                  disabled={buildImageLoading || !hostIp.trim() || !githubToken.trim() || hostIpLoading || hostIpUpdating || resetLoading}
                   className="border border-primary"
                 >
-                  {pullImageLoading ? (
+                  {buildImageLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Pulling...
@@ -257,7 +257,7 @@ export const ConfigEditor: React.FC = () => {
                   variant="outline"
                   size="sm"
                   onClick={resetToDefault}
-                  disabled={resetLoading || hostIpUpdating || pullImageLoading || hostIpLoading}
+                  disabled={resetLoading || hostIpUpdating || buildImageLoading || hostIpLoading}
                   className="border border-primary"
                 >
                   {resetLoading ? (

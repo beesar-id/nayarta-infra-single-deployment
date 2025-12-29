@@ -183,9 +183,9 @@ export const apiService = {
     return response.data;
   },
 
-  // Pull Image by IP
-  pullImageByIp: async (ip: string, githubToken?: string): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post('/api/config/pull-image', { ip, githubToken });
+  // Build Image by IP
+  buildImageByIp: async (ip: string, githubToken?: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/api/config/build-image', { ip, githubToken });
     return response.data;
   },
 
