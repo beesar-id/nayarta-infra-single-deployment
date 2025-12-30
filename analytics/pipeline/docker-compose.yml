@@ -169,7 +169,7 @@ services:
 
       # ========= YOLO =========
       - YOLO_CONFIG_DIR=/app/.ultralytics
-    command: celery -A task:app worker -l info --autoscale=50,1 -Q io,db,control -n subtasks@%h
+    command: celery -A tasks:app worker -l info --autoscale=50,1 -Q io,db,control -n subtasks@%h
     volumes:
       - ./shared_folder:/app/shared_folder
     networks:
