@@ -6,7 +6,7 @@ networks:
 services:
   pipman-web:
     image: beesar/analytics-pipeline:latest
-    profiles: ["analytics", "all", "pipeline"]
+    profiles: ["analytics", "all", "pipeline", "pipman"]
     container_name: nayarta-analytics-pipman-web
     restart: unless-stopped
     ports:
@@ -69,7 +69,7 @@ services:
   # Scheduler Application
   pipman:
     image: beesar/analytics-pipeline:latest
-    profiles: ["analytics", "all", "pipeline"]
+    profiles: ["analytics", "all", "pipeline", "pipman"]
     container_name: nayarta-analytics-pipman
     restart: unless-stopped
     environment:
