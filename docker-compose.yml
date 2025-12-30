@@ -50,6 +50,29 @@ include:
 
 # Watchtower service for automatic container updates
 services:
+  dashboard:
+    image: beesarid/nai-controll:latest
+    profiles: ["dashboard"]
+    container_name: dashboard
+    restart: unless-stopped
+    ports:
+      - "3030:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PROJECT_ROOT=/nayarta-onprem-compose
+    volumes:
+      # Bind mount the entire nayarta-onprem-compose project (parent directory)
+      # This allows editing files in the project from within the container
+      - ./:/nayarta-onprem-compose:rw
+      # Mount Docker socket for Docker API access
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - nayarta-network
+    labels:
+      - "com.project.name=nayarta"
+      - "com.project.profile=control"
+
   watchtower:
     image: containrrr/watchtower:latest
     container_name: nayarta-watchtower
