@@ -117,7 +117,7 @@ services:
     networks:
       - nayarta-network
     depends_on:
-      - pipman-ui
+      - pipman-web
     volumes:
       - ./shared_folder:/shared_folder
     labels:
