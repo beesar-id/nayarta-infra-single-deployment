@@ -16,7 +16,7 @@ volumes:
 
 services:
   ch-server:
-    profiles: ["clickhouse", "all", "analytics", "analytics-tools"]
+    profiles: ["clickhouse", "ch-server", "all", "analytics", "analytics-tools"]
     image: clickhouse/clickhouse-server:latest
     container_name: nayarta-ch-server
     restart: unless-stopped
@@ -72,7 +72,7 @@ services:
       - "com.project.profile=analytics-tools"
 
   ch-ui:
-    profiles: ["clickhouse", "all", "analytics"]
+    profiles: ["clickhouse", "ch-ui", "all", "analytics"]
     image: ghcr.io/caioricciuti/ch-ui:latest
     container_name: nayarta-ch-ui
     restart: unless-stopped
