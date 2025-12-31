@@ -99,6 +99,7 @@ pg_restore -U admin -d schedulerdb /docker-entrypoint-initdb.d/schedulerdb.dump
 
 #### NVIDIA Container toolkit
 ##### 1. Add NVIDIA package repositories
+(NVIDIA Docs)[https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html]
 ```bash
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
 curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey | sudo apt-key add -
